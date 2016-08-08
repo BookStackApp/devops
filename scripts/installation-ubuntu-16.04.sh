@@ -1,18 +1,23 @@
 #!/bin/sh
+# This script will install a new BookStack instance on a fresh Ubuntu 16.04 server.
+# This script is experimental and does not ensure any security.
+
+echo ""
+echo -n "Enter your the domain you want to host BookStack and press [ENTER]: "
+read DOMAIN
 
 export DEBIAN_FRONTEND=noninteractive
 apt update
-apt install git nginx php7.0 php7.0-curl php7.0-mbstring php7.0-ldap php7.0-mcrypt \
+apt install -y git nginx php7.0 php7.0-curl php7.0-mbstring php7.0-ldap php7.0-mcrypt \
 php7.0-tidy php7.0-xml php7.0-zip php7.0-gd php7.0-mysql mysql-server-5.7 mcrypt
 
 # Set up database
-echo "Setting up BookStack MySQL user and database"
 DB_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13)"
 mysql -u root --execute="CREATE DATABASE bookstack;"
 mysql -u root --execute="CREATE USER 'bookstack'@'localhost' IDENTIFIED BY '$DB_PASS';"
 mysql -u root --execute="GRANT ALL ON bookstack.* TO 'bookstack'@'localhost';FLUSH PRIVILEGES;"
 
-# Install BookStack
+# Download BookStack
 cd /var/www
 git clone https://github.com/ssddanbrown/BookStack.git --branch release --single-branch bookstack
 BOOKSTACK_DIR="/var/www/bookstack"
@@ -28,9 +33,8 @@ then
     php composer-setup.php --quiet
     RESULT=$?
     rm composer-setup.php
-    exit $RESULT
 else
-    >&2 echo 'ERROR: Invalid installer signature'
+    >&2 echo 'ERROR: Invalid composer installer signature'
     rm composer-setup.php
     exit 1
 fi
@@ -43,11 +47,23 @@ cp .env.example .env
 sed -i.bak 's/DB_DATABASE=.*$/DB_DATABASE=bookstack/' .env
 sed -i.bak 's/DB_USERNAME=.*$/DB_USERNAME=bookstack/' .env
 sed -i.bak "s/DB_PASSWORD=.*\$/DB_PASSWORD=$DB_PASS/" .env
+# Generate the application key
 php artisan key:generate --no-interaction
+# Migrate the databases
 php artisan migrate --no-interaction --force
 
-chown www-data:www-data -R bootstrap/cache public/uploads storage && chmod -R 755 bootstrap/cache public/uploads
- storage
- 
+# Set file and folder permissions
+chown www-data:www-data -R bootstrap/cache public/uploads storage && chmod -R 755 bootstrap/cache public/uploads storage
 
- 
+# Add nginx configuration
+curl https://raw.githubusercontent.com/BookStackApp/devops/master/config/nginx > /etc/nginx/sites-available/bookstack
+sed -i.bak "s/bookstack.dev/$DOMAIN/" /etc/nginx/sites-available/bookstack
+ln -s /etc/nginx/sites-available/bookstack /etc/nginx/sites-enabled/bookstack
+
+# Restart nginx to load new config
+service nginx restart
+
+echo ""
+echo "Setup Finished, Your BookStack instance should now be installed."
+echo "You can login with the email 'admin@admin.com' and password of 'password'"
+echo "MySQL was installed without a root password, It is reccomended that you set a root MySQL password."
