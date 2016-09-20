@@ -8,7 +8,7 @@ read DOMAIN
 
 export DEBIAN_FRONTEND=noninteractive
 apt update
-apt install -y git nginx php7.0 php7.0-curl php7.0-mbstring php7.0-ldap php7.0-mcrypt \
+apt install -y git nginx curl php7.0 php7.0-curl php7.0-mbstring php7.0-ldap php7.0-mcrypt \
 php7.0-tidy php7.0-xml php7.0-zip php7.0-gd php7.0-mysql mysql-server-5.7 mcrypt
 
 # Set up database
