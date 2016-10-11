@@ -25,7 +25,7 @@ cd $BOOKSTACK_DIR
 
 # Install composer
 EXPECTED_SIGNATURE=$(wget https://composer.github.io/installer.sig -O - -q)
-php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+curl -s https://getcomposer.org/installer > composer-setup.php
 ACTUAL_SIGNATURE=$(php -r "echo hash_file('SHA384', 'composer-setup.php');")
 
 if [ "$EXPECTED_SIGNATURE" = "$ACTUAL_SIGNATURE" ]
@@ -56,7 +56,7 @@ php artisan migrate --no-interaction --force
 chown www-data:www-data -R bootstrap/cache public/uploads storage && chmod -R 755 bootstrap/cache public/uploads storage
 
 # Add nginx configuration
-curl https://raw.githubusercontent.com/BookStackApp/devops/master/config/nginx > /etc/nginx/sites-available/bookstack
+curl -s https://raw.githubusercontent.com/BookStackApp/devops/master/config/nginx > /etc/nginx/sites-available/bookstack
 sed -i.bak "s/bookstack.dev/$DOMAIN/" /etc/nginx/sites-available/bookstack
 ln -s /etc/nginx/sites-available/bookstack /etc/nginx/sites-enabled/bookstack
 
