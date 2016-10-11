@@ -59,6 +59,7 @@ chown www-data:www-data -R bootstrap/cache public/uploads storage && chmod -R 75
 curl https://raw.githubusercontent.com/BookStackApp/devops/master/config/nginx > /etc/nginx/sites-available/bookstack
 sed -i.bak "s/bookstack.dev/$DOMAIN/" /etc/nginx/sites-available/bookstack
 ln -s /etc/nginx/sites-available/bookstack /etc/nginx/sites-enabled/bookstack
+rm /etc/nginx/sites-enabled/default
 
 # Restart nginx to load new config
 service nginx restart
