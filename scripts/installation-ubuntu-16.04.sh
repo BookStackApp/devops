@@ -6,6 +6,8 @@ echo ""
 echo -n "Enter your the domain you want to host BookStack and press [ENTER]: "
 read DOMAIN
 
+myip=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
+
 export DEBIAN_FRONTEND=noninteractive
 apt update
 apt install -y git nginx curl php7.0 php7.0-curl php7.0-mbstring php7.0-ldap php7.0-mcrypt \
@@ -60,10 +62,15 @@ curl https://raw.githubusercontent.com/BookStackApp/devops/master/config/nginx >
 sed -i.bak "s/bookstack.dev/$DOMAIN/" /etc/nginx/sites-available/bookstack
 ln -s /etc/nginx/sites-available/bookstack /etc/nginx/sites-enabled/bookstack
 
+# Remove the default nginx configuration
+rm /etc/nginx/sites-enabled/default
+
 # Restart nginx to load new config
 service nginx restart
 
 echo ""
 echo "Setup Finished, Your BookStack instance should now be installed."
 echo "You can login with the email 'admin@admin.com' and password of 'password'"
-echo "MySQL was installed without a root password, It is reccomended that you set a root MySQL password."
+echo "MySQL was installed without a root password, It is recommended that you set a root MySQL password."
+echo ""
+echo "You can access your BookStack instance at: http://$myip/"
