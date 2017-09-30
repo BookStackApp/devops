@@ -10,7 +10,7 @@ myip=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d
 
 export DEBIAN_FRONTEND=noninteractive
 apt update
-apt install -y git nginx curl php7.0 php7.0-curl php7.0-mbstring php7.0-ldap php7.0-mcrypt \
+apt install -y git nginx curl php7.0-fpm php7.0-curl php7.0-mbstring php7.0-ldap php7.0-mcrypt \
 php7.0-tidy php7.0-xml php7.0-zip php7.0-gd php7.0-mysql mysql-server-5.7 mcrypt
 
 # Set up database
