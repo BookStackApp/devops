@@ -1,5 +1,6 @@
 #!/bin/sh
 # This script will install a new BookStack instance on a fresh Devuan 1.0 (Jessie) server.
+# Modified by Linux O'Beardly from original BookStack install by Dan Brown. 
 # This script is experimental and does not ensure any security.
 
 echo ""
