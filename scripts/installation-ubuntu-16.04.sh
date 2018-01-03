@@ -3,7 +3,7 @@
 # This script is experimental and does not ensure any security.
 
 echo ""
-echo -n "Enter your the domain you want to host BookStack and press [ENTER]: "
+echo -n "Enter the domain you want to host BookStack on and press [ENTER]: "
 read DOMAIN
 
 myip=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
@@ -69,8 +69,10 @@ rm /etc/nginx/sites-enabled/default
 service nginx restart
 
 echo ""
-echo "Setup Finished, Your BookStack instance should now be installed."
-echo "You can login with the email 'admin@admin.com' and password of 'password'"
-echo "MySQL was installed without a root password, It is recommended that you set a root MySQL password."
+echo "Setup Finished.
+echo ""
+echo "Your BookStack instance should now be installed."
+echo "You can login with the email: 'admin@admin.com' and password: 'password'"
+echo "MySQL was installed without a root password - it is recommended that you set a password for the MySQL root user."
 echo ""
 echo "You can access your BookStack instance at: http://$myip/"
