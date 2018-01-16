@@ -3,7 +3,7 @@
 # This script is experimental and does not ensure any security.
 
 echo ""
-echo -n "Enter your the domain you want to host BookStack and press [ENTER]: "
+echo -n "Enter the domain you want to host BookStack and press [ENTER]: "
 read DOMAIN
 
 myip=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
