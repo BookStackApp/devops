@@ -9,6 +9,7 @@ read DOMAIN
 CURRENT_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
 
 export DEBIAN_FRONTEND=noninteractive
+add-apt-repository ppa:ondrej/php -y
 apt update
 apt install -y git apache2 curl php7.2-fpm php7.2-curl php7.2-mbstring php7.2-ldap \
 php7.2-tidy php7.2-xml php7.2-zip php7.2-gd php7.2-mysql mysql-server-5.7 libapache2-mod-php7.2
