@@ -2,6 +2,8 @@
 # This script will install a new BookStack instance on a fresh Ubuntu 18.04 server.
 # This script is experimental and does not ensure any security.
 
+# Fetch domain to use from first provided parameter,
+# Otherwise request the user to input their domain
 DOMAIN=$1
 if [ -z $1 ]
 then
@@ -10,8 +12,10 @@ printf "Enter the domain you want to host BookStack and press [ENTER]\nExamples:
 read DOMAIN
 fi
 
+# Get the current machine IP address
 CURRENT_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
 
+# Install core system packages
 export DEBIAN_FRONTEND=noninteractive
 add-apt-repository universe
 apt update
