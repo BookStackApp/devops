@@ -1,22 +1,31 @@
 #!/usr/bin/env bash
 # This script will install a new BookStack instance on a fresh Centos 7 server. Tested on CentOS Linux release 7.6.1810 (minimal).
 # This script is experimental!
+# This script will install Apache2 or nginx, and MySQL 5.7 or MariaDB 10.3
 
 # Check root level permissions
 if [[ "$(id -u)" -ne 0 ]]; then
-   echo "Error: The installation script must be run as root" >&2
-   exit 1
+    echo "Error: The installation script must be run as root" >&2
+    exit 1
+fi
+
+# Check if OS is CentOS 7
+# Comment next section, if you want to skip this check
+if [[ "$(grep 'CentOS Linux release 7' /etc/redhat-release)" != "CentOS Linux release 7".* ]]; then
+    echo "Error: The OS is not CentOS 7" >&2
+    exit 1
 fi
 
 # Fetch domain to use from first provided parameter,
 # Otherwise request the user to input their domain
 DOMAIN=$1
 if [ -z $1 ]; then
-   echo -e "\nEnter the domain you want to host BookStack and press [ENTER]\nExample: "$HOSTNAME""
-   read DOMAIN
+    echo -e "\nEnter the domain you want to host BookStack and press [ENTER]\nExample: "$HOSTNAME""
+    read DOMAIN
 fi
 if [ -z $DOMAIN ]; then
-   DOMAIN="$HOSTNAME"
+    DOMAIN=$HOSTNAME
+    echo -e "Using domain: "$DOMAIN""
 fi
 
 # Get the current machine IP address
@@ -25,43 +34,138 @@ CURRENT_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -
 # Install core system packages
 yum -y -q install epel-release yum-utils
 yum -y -q install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
-yum -y -q install https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm
-yum-config-manager --disable mysql80-community > /dev/null
 yum-config-manager --enable remi-php72 > /dev/null
-yum-config-manager --enable mysql57-community > /dev/null
-yum -y -q install git httpd curl wget unzip expect policycoreutils-python php php-fpm php-common php-mbstring php-ldap php-tidy php-xml php-pecl-zip php-gd php-mysqlnd mysql-community-server
+yum -y -q install git curl wget unzip expect policycoreutils-python php php-fpm php-common php-mbstring php-ldap php-tidy php-xml php-pecl-zip php-gd php-mysqlnd
+
+# Select web-server
+echo -e "\v"
+PS3='Please select your web-server: '
+options=("Apache2 (default)" "nginx" "Quit")
+select opt in "${options[@]}";
+do
+    case $opt in
+        "Apache2 (default)")
+            echo "Installing Apache2..."
+            WEBSERVER="httpd"
+            yum -y -q install httpd mod_ssl
+            break
+            ;;
+        "nginx")
+            echo "Installing nginx..."
+            WEBSERVER="nginx"
+            yum -y -q install nginx
+            break
+            ;;
+        "Quit")
+            echo "Exiting..."
+            exit 1
+            ;;
+        *) echo "Invalid option $REPLY";;
+    esac
+done
+
+# Select database
+PS3='Please select your database-server: '
+options=("MySQL" "MariaDB" "Quit")
+select opt in "${options[@]}";
+do
+    case $opt in
+        "MySQL")
+            echo -e "Installing MySQL...\n"
+            DATABASE="mysql"
+            yum -y -q install https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm
+            yum-config-manager --disable mysql80-community > /dev/null
+            yum-config-manager --enable mysql57-community > /dev/null
+            yum -y -q install mysql-community-server
+            break
+            ;;
+        "MariaDB")
+            echo -e "Installing MariaDB...\n"
+            DATABASE="mariadb"
+            cat > /etc/yum.repos.d/MariaDB.repo <<EOL
+# MariaDB 10.3 CentOS repository
+[mariadb]
+name = MariaDB
+baseurl = http://yum.mariadb.org/10.3/centos7-amd64
+gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+gpgcheck=1
+EOL
+            yum -y -q install MariaDB-server
+            break
+            ;;
+        "Quit")
+            echo "Exiting..."
+            exit 1
+            ;;
+        *) echo "Invalid option $REPLY";;
+    esac
+done
 
 # Set up database
-systemctl enable mysqld && systemctl start mysqld
 MYSQL_ROOT_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 11)\$"
-MYSQL_TEMP_PASS="$(grep 'temporary password' /var/log/mysqld.log | grep -o '............$')"
 DB_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13)\$"
-# MySQL Secure Installation
-SECURE_MYSQL=$(expect -c "
+case $DATABASE in
+        "mysql")
+            systemctl enable mysqld && systemctl start mysqld
+            MYSQL_TEMP_PASS="$(grep 'temporary password' /var/log/mysqld.log | grep -o '............$')"
+            
+            # MySQL Secure Installation
+            SECURE_MYSQL=$(expect -c "
+            
+            set timeout 10
+            spawn mysql_secure_installation
+            
+            expect \"Enter password for user root:\"
+            send \"$MYSQL_TEMP_PASS\r\"
+            expect \"New password:\"
+            send \"$MYSQL_ROOT_PASS\r\"
+            expect \"Re-enter new password:\"
+            send \"$MYSQL_ROOT_PASS\r\"
+            expect \"Do you wish to continue with the password provided?(Press y|Y for Yes, any other key for No) :\"
+            send \"n\r\"
+            expect \"Remove anonymous users? (Press y|Y for Yes, any other key for No) :\"
+            send \"y\r\"
+            expect \"Disallow root login remotely? (Press y|Y for Yes, any other key for No) :\"
+            send \"y\r\"
+            expect \"Remove test database and access to it? (Press y|Y for Yes, any other key for No) :\"
+            send \"y\r\"
+            expect \"Reload privilege tables now? (Press y|Y for Yes, any other key for No) :\"
+            send \"y\r\"
+            expect eof
+            ")
+            echo "$SECURE_MYSQL"
+           ;;
+        "mariadb")
+            systemctl enable mariadb && systemctl start mariadb
 
-set timeout 10
-spawn mysql_secure_installation
-
-expect \"Enter password for user root:\"
-send \"$MYSQL_TEMP_PASS\r\"
-expect \"New password:\"
-send \"$MYSQL_ROOT_PASS\r\"
-expect \"Re-enter new password:\"
-send \"$MYSQL_ROOT_PASS\r\"
-expect \"Do you wish to continue with the password provided?(Press y|Y for Yes, any other key for No) :\"
-send \"n\r\"
-expect \"Remove anonymous users? (Press y|Y for Yes, any other key for No) :\"
-send \"y\r\"
-expect \"Disallow root login remotely? (Press y|Y for Yes, any other key for No) :\"
-send \"y\r\"
-expect \"Remove test database and access to it? (Press y|Y for Yes, any other key for No) :\"
-send \"y\r\"
-expect \"Reload privilege tables now? (Press y|Y for Yes, any other key for No) :\"
-send \"y\r\"
-expect eof
-")
-echo "$SECURE_MYSQL"
-
+            # MariaDB Secure Installation
+            SECURE_MARIADB=$(expect -c "
+            
+            set timeout 10
+            spawn mysql_secure_installation
+            
+            expect \"Enter current password for root (enter for none):\"
+            send \"\r\"
+            expect \"Set root password?\"
+            send \"y\r\"
+            expect \"New password:\"
+            send \"$MYSQL_ROOT_PASS\r\"
+            expect \"Re-enter new password:\"
+            send \"$MYSQL_ROOT_PASS\r\"
+            expect \"Remove anonymous users?\"
+            send \"y\r\"
+            expect \"Disallow root login remotely?\"
+            send \"y\r\"
+            expect \"Remove test database and access to it?\"
+            send \"y\r\"
+            expect \"Reload privilege tables now?\"
+            send \"y\r\"
+            expect eof
+            ")
+            echo "$SECURE_MARIADB"
+           ;;
+esac
+		   
 # Create Database
 mysql --user root --password="$MYSQL_ROOT_PASS" --execute="CREATE DATABASE bookstack;"
 mysql --user root --password="$MYSQL_ROOT_PASS" --execute="CREATE USER 'bookstack'@'localhost' IDENTIFIED BY '$DB_PASS';"
@@ -102,11 +206,25 @@ php artisan key:generate --no-interaction --force
 # Migrate the databases
 php artisan migrate --no-interaction --force
 
-# Set file and folder permissions
-chown apache:apache -R bootstrap/cache public/uploads storage && chmod -R 755 bootstrap/cache public/uploads storage
+# SElinux permissions
+if [[ "$(getenforce)" == "Enforcing" ]]; then
+    echo -e "\nSElinux mode is 'Enforcing', trying to set correct context..."
+    setsebool -P httpd_can_sendmail 1
+    setsebool -P httpd_can_network_connect 1
+    semanage fcontext -a -t httpd_sys_rw_content_t "${BOOKSTACK_DIR}/public/uploads(/.*)?"
+    semanage fcontext -a -t httpd_sys_rw_content_t "${BOOKSTACK_DIR}/storage(/.*)?"
+    semanage fcontext -a -t httpd_sys_rw_content_t "${BOOKSTACK_DIR}/bootstrap/cache(/.*)?"
+    restorecon -R /var/www
+fi
 
-# Set up apache
-cat >/etc/httpd/conf.d/bookstack.conf <<EOL
+# Set up web-server
+case $WEBSERVER in
+        "httpd")
+           # Set files and folders permissions
+           chown apache:apache -R bootstrap/cache public/uploads storage && chmod -R 755 bootstrap/cache public/uploads storage
+
+           # Set up apache
+           cat >/etc/httpd/conf.d/bookstack.conf <<EOL
 <VirtualHost *:80>
         ServerName ${DOMAIN}
         ServerAdmin webmaster@localhost
@@ -138,33 +256,72 @@ cat >/etc/httpd/conf.d/bookstack.conf <<EOL
 </VirtualHost>
 EOL
 
-# SElinux folders context
-if [[ "$(getenforce)" == "Enforcing" ]]; then
-   echo "SElinux mode is 'Enforcing', trying to set correct context..."
-   semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/bookstack/public/uploads(/.*)?'
-   semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/bookstack/storage(/.*)?'
-   semanage fcontext -a -t httpd_cache_t '/var/www/bookstack/bootstrap/cache(/.*)?'
-   restorecon -R /var/www
-   restorecon -R /var/log/httpd
-   restorecon -R /etc/httpd
-fi
+           # Start Apache2
+           systemctl enable httpd && systemctl start httpd
+           ;;
+            
+        "nginx")
+           # Set files and folders permissions
+           chown nginx:nginx -R bootstrap/cache public/uploads storage && chmod -R 755 bootstrap/cache public/uploads storage
+           
+           # Set up php-fpm
+           sed -c -i "s/\(user *= *\).*/\1$WEBSERVER/" /etc/php-fpm.d/www.conf
+           sed -c -i "s/\(group *= *\).*/\1$WEBSERVER/" /etc/php-fpm.d/www.conf
+           systemctl enable php-fpm && systemctl start php-fpm
+           
+           # Set up nginx
+           cat >/etc/nginx/conf.d/bookstack.conf <<EOL
+server {
+  listen 80 default_server;
+  listen [::]:80 default_server;
 
-systemctl enable httpd > /dev/null && systemctl start httpd
+  server_name ${DOMAIN};
+
+  root /var/www/bookstack/public;
+  index index.php index.html;
+
+  location / {
+    try_files \$uri \$uri/ /index.php?\$query_string;
+  }
+
+  location ~ ^/(?:\.htaccess|data|config|db_structure\.xml|README) {
+    deny all;
+  }
+
+  location ~ \.php$ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    fastcgi_param PATH_INFO \$fastcgi_path_info;
+    fastcgi_pass 127.0.0.1:9000;
+  }
+}
+EOL
+
+           # Remove 'default_server' value in nginx.conf
+           sed -i 's/\<default_server\>//g' /etc/nginx/nginx.conf
+
+           # Start nginx
+           systemctl enable nginx && systemctl start nginx
+            ;;
+esac
 
 # Config Firewalld
 if [[ "$(systemctl is-active firewalld)" == "active" ]]; then
-   echo -n "Adding firewalld service... "
-   firewall-cmd --add-service=http && firewall-cmd --permanent --add-service=http > /dev/null
-   firewall-cmd --reload > /dev/null
+    echo -e "\nAdding firewalld service rule... "
+    firewall-cmd --add-service=http && firewall-cmd --permanent --add-service=http > /dev/null
+    firewall-cmd --reload > /dev/null
 fi
 
 # Remove package
 yum -y -q remove expect
 
-echo ""
+echo -e "\v"
+echo "#############################################################################"
 echo "Setup Finished, Your BookStack instance should now be installed."
 echo "You can login with the email 'admin@admin.com' and password of 'password'"
-echo -e "MySQL was installed with a root password: "$MYSQL_ROOT_PASS"."
+echo -e "Database "$DATABASE" was installed with a root password: "$MYSQL_ROOT_PASS"."
+echo -e "Your web-server config file: /etc/"$WEBSERVER"/conf.d/bookstack.conf"
 echo ""
 echo -e "You can access your BookStack instance at: http://$CURRENT_IP/ or http://$DOMAIN/"
 exit 0
