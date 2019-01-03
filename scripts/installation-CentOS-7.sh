@@ -26,6 +26,8 @@ fi
 if [ -z $DOMAIN ]; then
     DOMAIN=$HOSTNAME
     echo -e "Using domain: "$DOMAIN""
+else
+    echo -e "Using domain: "$DOMAIN""
 fi
 
 # Get the current machine IP address
@@ -40,11 +42,11 @@ yum -y -q install git curl wget unzip expect policycoreutils-python php php-fpm 
 # Select web-server
 echo -e "\v"
 PS3='Please select your web-server: '
-options=("Apache2 (default)" "nginx" "Quit")
+options=("Apache2" "nginx" "Quit")
 select opt in "${options[@]}";
 do
     case $opt in
-        "Apache2 (default)")
+        "Apache2")
             echo "Installing Apache2..."
             WEBSERVER="httpd"
             yum -y -q install httpd mod_ssl
@@ -255,6 +257,10 @@ case $WEBSERVER in
         CustomLog logs/access_log combined
 </VirtualHost>
 EOL
+
+           # Set up php-fpm
+           sed -c -i "s/\(^ *SetHandler *\).*/\1\"proxy\:fcgi\:\/\/127\.0\.0\.1\:9001\"/" /etc/httpd/conf.d/php.conf
+           systemctl enable php-fpm && systemctl start php-fpm
 
            # Start Apache2
            systemctl enable httpd && systemctl start httpd
