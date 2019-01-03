@@ -259,7 +259,7 @@ case $WEBSERVER in
 EOL
 
            # Set up php-fpm
-           sed -c -i "s/\(^ *SetHandler *\).*/\1\"proxy\:fcgi\:\/\/127\.0\.0\.1\:9001\"/" /etc/httpd/conf.d/php.conf
+           sed -c -i "s/\(^ *SetHandler *\).*/\1\"proxy\:fcgi\:\/\/127\.0\.0\.1\:9000\"/" /etc/httpd/conf.d/php.conf
            systemctl enable php-fpm && systemctl start php-fpm
 
            # Start Apache2
