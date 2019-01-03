@@ -37,7 +37,7 @@ CURRENT_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -
 yum -y -q install epel-release yum-utils
 yum -y -q install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
 yum-config-manager --enable remi-php72 > /dev/null
-yum -y -q install git curl wget unzip expect policycoreutils-python php php-fpm php-common php-mbstring php-ldap php-tidy php-xml php-pecl-zip php-gd php-mysqlnd
+yum -y -q install git curl wget unzip policycoreutils-python php php-fpm php-common php-mbstring php-ldap php-tidy php-xml php-pecl-zip php-gd php-mysqlnd
 
 # Select web-server
 echo -e "\v"
@@ -272,9 +272,6 @@ if [[ "$(systemctl is-active firewalld)" == "active" ]]; then
     firewall-cmd --add-service=http && firewall-cmd --permanent --add-service=http > /dev/null
     firewall-cmd --reload > /dev/null
 fi
-
-# Remove package
-yum -y -q remove expect
 
 echo -e "\v"
 echo "#############################################################################"
