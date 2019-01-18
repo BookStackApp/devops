@@ -104,8 +104,9 @@ EOL
 done
 
 # Set up database
-MYSQL_ROOT_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 11)\$"
-DB_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13)\$"
+# Password generator string is not optimal. Should be reworked.
+MYSQL_ROOT_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 18)\$"
+DB_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 15)\$"
 case $DATABASE in
         "mysql")
             systemctl enable mysqld && systemctl start mysqld
@@ -170,14 +171,18 @@ if [[ "$(getenforce)" == "Enforcing" ]]; then
     semanage fcontext -a -t httpd_sys_rw_content_t "${BOOKSTACK_DIR}/public/uploads(/.*)?"
     semanage fcontext -a -t httpd_sys_rw_content_t "${BOOKSTACK_DIR}/storage(/.*)?"
     semanage fcontext -a -t httpd_sys_rw_content_t "${BOOKSTACK_DIR}/bootstrap/cache(/.*)?"
-    restorecon -R /var/www
+    restorecon -R "$BOOKSTACK_DIR"
 fi
+
+# Change folders permissions
+chmod -R 754 bootstrap/cache public/uploads storage
+chmod -R o+X bootstrap/cache public/uploads storage
 
 # Set up web-server
 case $WEBSERVER in
         "httpd")
-           # Set files and folders permissions
-           chown apache:apache -R bootstrap/cache public/uploads storage && chmod -R 755 bootstrap/cache public/uploads storage
+           # Set files and folders owner
+           chown apache:apache -R bootstrap/cache public/uploads storage
 
            # Set up apache
            cat >/etc/httpd/conf.d/bookstack.conf <<EOL
@@ -221,8 +226,8 @@ EOL
            ;;
             
         "nginx")
-           # Set files and folders permissions
-           chown nginx:nginx -R bootstrap/cache public/uploads storage && chmod -R 755 bootstrap/cache public/uploads storage
+           # Set files and folders owner
+           chown nginx:nginx -R bootstrap/cache public/uploads storage
            
            # Set up php-fpm
            sed -c -i "s/\(user *= *\).*/\1$WEBSERVER/" /etc/php-fpm.d/www.conf
