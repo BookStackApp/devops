@@ -36,7 +36,7 @@ CURRENT_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -
 # Install core system packages
 yum -y -q install epel-release yum-utils
 yum -y -q install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
-yum-config-manager --enable remi-php72 > /dev/null
+yum-config-manager --enable remi-php73 > /dev/null
 yum -y -q install git curl wget unzip policycoreutils-python php php-fpm php-common php-mbstring php-ldap php-tidy php-xml php-pecl-zip php-gd php-mysqlnd
 
 # Select web-server
@@ -105,7 +105,7 @@ done
 
 # Set up database
 # Password generator string is not optimal. Should be reworked.
-MYSQL_ROOT_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 18)\$"
+MYSQL_ROOT_PASS=8Gl"$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 18)\$"
 DB_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 15)\$"
 case $DATABASE in
         "mysql")
