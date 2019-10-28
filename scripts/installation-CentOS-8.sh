@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # This script will install a new BookStack instance on a fresh CentOS 8 server. Tested on CentOS Linux release 8.0.1905 (Core).
 # This script is experimental!
-# This script will install Apache2 or nginx, MariaDB 10.3, PHP 7.3
-# P.S. There is no MySQL 5.7 in CentOS 8 baserepos or MySQL repos for CentOS 8
+# This script will install Apache2 or nginx with FPM/FastCGI, MySQL 8.0, PHP 7.3
+
+INSTALL_PATH='/var/www'
 
 # Check root level permissions
 if [[ "$(id -u)" -ne 0 ]]; then
@@ -19,6 +20,7 @@ fi
 
 # Fetch domain to use from first provided parameter,
 # Otherwise request the user to input their domain
+# If input empty -> use hostname
 DOMAIN=$1
 if [ -z $1 ]; then
     echo -e "\nEnter the domain you want to host BookStack and press [ENTER]\nExample: "$HOSTNAME""
@@ -45,12 +47,8 @@ dnf -y -q module disable php 2> /dev/null
 # Enable php module from Remi's Modular repository for Enterprise Linux 8
 dnf -y -q module install php:remi-7.3 2> /dev/null
 
-#dnf -y -q install https://dev.mysql.com/get/mysql80-community-release-el8-1.noarch.rpm
-
-
 # Install packages
-#dnf -y -q install git curl wget unzip php-fpm php-curl php-mbstring php-ldap php-tidy php-xml php-pecl-zip php-gd mysql-server
-dnf -y -q install git curl wget unzip php-fpm php-curl php-mbstring php-ldap php-tidy php-xml php-pecl-zip php-gd mariadb-server
+dnf -y -q install git curl wget unzip php-fpm php-curl php-mbstring php-ldap php-tidy php-xml php-pecl-zip php-gd php-mysqlnd mysql-server
 
 # Select web-server
 echo -e "\v"
@@ -83,14 +81,9 @@ done
 # Password generator string is not optimal. Should be reworked.
 MYSQL_ROOT_PASS=8Gl"$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 18)\$"
 DB_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 15)\$"
-systemctl enable mariadb && systemctl start mariadb
-#systemctl enable mysqld && systemctl start mysqld
-#MYSQL_TEMP_PASS="$(grep 'temporary password' /var/log/mysqld.log | grep -o '............$')"
+systemctl enable mysqld && systemctl start mysqld
 # MySQL change root password
-#mysql --user root --connect-expired-password --execute="ALTER USER 'root'@'localhost' IDENTIFIED BY '$MYSQL_ROOT_PASS';"
-
-# MariaDB change root password
-mysql --user root --execute="ALTER USER 'root'@'localhost' IDENTIFIED BY '$MYSQL_ROOT_PASS';"
+mysql --user root --connect-expired-password --execute="ALTER USER 'root'@'localhost' IDENTIFIED BY '$MYSQL_ROOT_PASS';"
 
 # Create Database
 mysql --user root --password="$MYSQL_ROOT_PASS" --execute="CREATE DATABASE bookstack;"
@@ -98,9 +91,9 @@ mysql --user root --password="$MYSQL_ROOT_PASS" --execute="CREATE USER 'bookstac
 mysql --user root --password="$MYSQL_ROOT_PASS" --execute="GRANT ALL ON bookstack.* TO 'bookstack'@'localhost';FLUSH PRIVILEGES;"
 
 # Download BookStack
-cd /var/www
+cd $INSTALL_PATH 
 git clone https://github.com/BookStackApp/BookStack.git --branch release --single-branch bookstack
-BOOKSTACK_DIR="/var/www/bookstack"
+BOOKSTACK_DIR="${INSTALL_PATH}/bookstack"
 cd $BOOKSTACK_DIR
 
 # Install composer
@@ -186,8 +179,7 @@ case $WEBSERVER in
 </VirtualHost>
 EOL
 
-           # Set up php-fpm
-           sed -c -i "s/\(^ *SetHandler *\).*/\1\"proxy\:fcgi\:\/\/127\.0\.0\.1\:9000\"/" /etc/httpd/conf.d/php.conf
+           # Start php-fpm
            systemctl enable php-fpm && systemctl start php-fpm
 
            # Start Apache2
@@ -222,7 +214,7 @@ server {
     include fastcgi_params;
     fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     fastcgi_param PATH_INFO \$fastcgi_path_info;
-    fastcgi_pass 127.0.0.1:9000;
+    fastcgi_pass unix:/run/php-fpm/www.sock;
   }
 }
 EOL
@@ -237,17 +229,16 @@ esac
 
 # Config Firewalld
 if [[ "$(systemctl is-active firewalld)" == "active" ]]; then
-    echo -e "\nAdding firewalld service rule... "
+    echo -e "\nAdding firewalld http service rule... "
     firewall-cmd --add-service=http && firewall-cmd --permanent --add-service=http > /dev/null
-    firewall-cmd --reload > /dev/null
 fi
 
 echo -e "\v"
 echo "#############################################################################"
 echo "Setup Finished, Your BookStack instance should now be installed."
-echo "You can login with the email 'admin@admin.com' and password of 'password'"
-echo -e "Database "$DATABASE" was installed with a root password: "$MYSQL_ROOT_PASS"."
-echo -e "Your web-server config file: /etc/"$WEBSERVER"/conf.d/bookstack.conf"
+echo -e 'You can login with the email '"\033[32m'admin@admin.com'\033[0m"' and password of '"\033[32m'password'\033[0m"
+echo -e "Database \033[32mbookstack\033[0m was installed with a root password: \033[32m${MYSQL_ROOT_PASS}\033[0m."
+echo -e "Your web-server config file: \033[32m/etc/${WEBSERVER}/conf.d/bookstack.conf\033[0m"
 echo ""
-echo -e "You can access your BookStack instance at: http://$CURRENT_IP/ or http://$DOMAIN/"
+echo -e "You can access your BookStack instance at: \033[32mhttp://$CURRENT_IP/\033[0m or \033[32mhttp://$DOMAIN/\033[0m"
 exit 0
