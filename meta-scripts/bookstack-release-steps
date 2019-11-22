@@ -1,0 +1,28 @@
+#!/bin/bash
+
+echo "Enter the full version (v0.25.5) and press [ENTER]:"
+read version
+
+echo ""
+echo ""
+
+# Translator Attribution Update
+echo "bookstack-update-translators"
+echo "git commit -a -m \"Updated translator attribution before release ${version}\""
+
+# Merge codebase from master
+echo "git checkout release"
+echo "git merge master"
+echo ""
+
+# Builds deps and increment version
+echo "npm run production"
+echo "echo \"${version}\" > version"
+echo "git commit -a -m \"Updated version and assets for release ${version}\""
+echo ""
+
+
+# Tag release and push it to GitHub
+echo "git tag -a ${version} -m \"Beta Release ${version}\" -s"
+echo "git push origin release"
+echo "git push origin ${version}"
