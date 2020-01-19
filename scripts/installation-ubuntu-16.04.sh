@@ -10,8 +10,10 @@ myip=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d
 
 export DEBIAN_FRONTEND=noninteractive
 apt update
-apt install -y git nginx curl php7.0-fpm php7.0-curl php7.0-mbstring php7.0-ldap php7.0-mcrypt \
-php7.0-tidy php7.0-xml php7.0-zip php7.0-gd php7.0-mysql mysql-server-5.7 mcrypt
+apt install -y software-properties-common python-software-properties
+add-apt-repository -yu ppa:ondrej/php
+apt install -y git nginx curl php7.3-fpm php7.3-curl php7.3-mbstring php7.3-ldap \
+php7.3-tidy php7.3-xml php7.3-zip php7.3-gd php7.3-mysql mysql-server-5.7
 
 # Set up database
 DB_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13)"
