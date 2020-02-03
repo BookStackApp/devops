@@ -35,8 +35,16 @@ if (count($argv) < 2) {
 
 // Get milestone info from GitHub
 $milestoneID = intval($argv[1]);
+
+$issues = [];
+$requestIssues = [];
+$page = 1;
 $issueURL = 'https://api.github.com/repos/BookStackApp/BookStack/issues?milestone='. $milestoneID .'&state=all';
-$issues = getJSON($issueURL);
+do {
+	$requestIssues = getJSON($issueURL . '&page=' . $page);
+	$issues = array_merge($issues, $requestIssues);
+	$page++;
+} while (count($requestIssues) > 0);
 
 // Get BookStack version and check if a feature or minor release
 $milestone = $issues[0]['milestone'];
