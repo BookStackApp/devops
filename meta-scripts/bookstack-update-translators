@@ -92,9 +92,16 @@ function makeMemberExportReport(string $key) {
     curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
 
     $result = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    if ($error) {
+        throw new Exception($error);
+    }
+
     curl_close($ch);
 
     $data = json_decode($result);
+
     return $data;
 }
 
