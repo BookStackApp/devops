@@ -44,7 +44,7 @@ else
 fi
 
 # Install BookStack composer dependancies
-php composer.phar install
+php composer.phar install --no-dev
 
 # Copy and update BookStack environment variables
 cp .env.example .env
