@@ -1,0 +1,43 @@
+#!/usr/bin/env php
+<?php
+
+function error($text) {
+	echo $text . "\n";
+	exit(1);
+}
+
+function output($text) {
+    echo $text . "\n";
+}
+
+
+// Check a file path is provided
+if (count($argv) < 2) {
+	error("Path to JSON report required");
+}
+
+// Check file path exists
+$reportFile = realpath($argv[1]);
+if (!file_exists($reportFile)) {
+	error("JSON report file not found at {$reportFile}");
+}
+
+$reportContent = file_get_contents($reportFile);
+$report = json_decode($reportContent, true);
+if (is_null($report)) {
+	error("Could not read JSON content from file {$reportFile}");
+}
+
+foreach ($report['data'] as $userData) {
+	$fullName = $userData['user']['fullName'];
+	$languages = array_map(function($lang) {
+		return '*' . $lang['name'] . '*';
+	}, $userData['languages']);
+
+	if (count($languages) === 0) {
+		continue;
+	}
+
+	$langString = implode(", ", $languages);
+	output("* {$fullName} - {$langString}");
+}
