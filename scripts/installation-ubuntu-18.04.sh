@@ -50,15 +50,16 @@ else
     exit 1
 fi
 
-# Install BookStack composer dependancies
+# Install BookStack composer dependencies
 php composer.phar install --no-dev
 
 # Copy and update BookStack environment variables
 cp .env.example .env
+sed -i.bak "s@APP_URL=.*\$@APP_URL=http://$DOMAIN@" .env
 sed -i.bak 's/DB_DATABASE=.*$/DB_DATABASE=bookstack/' .env
 sed -i.bak 's/DB_USERNAME=.*$/DB_USERNAME=bookstack/' .env
 sed -i.bak "s/DB_PASSWORD=.*\$/DB_PASSWORD=$DB_PASS/" .env
-echo "APP_URL="
+
 # Generate the application key
 php artisan key:generate --no-interaction --force
 # Migrate the databases
