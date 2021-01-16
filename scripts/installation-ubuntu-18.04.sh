@@ -51,7 +51,8 @@ else
 fi
 
 # Install BookStack composer dependencies
-php composer.phar install --no-dev
+export COMPOSER_ALLOW_SUPERUSER=1
+php composer.phar install --no-dev --no-plugins
 
 # Copy and update BookStack environment variables
 cp .env.example .env
@@ -106,8 +107,8 @@ cat >/etc/apache2/sites-available/bookstack.conf <<EOL
         </IfModule>
     </Directory>
 
-	ErrorLog ${APACHE_LOG_DIR}/error.log
-	CustomLog ${APACHE_LOG_DIR}/access.log combined
+	ErrorLog \${APACHE_LOG_DIR}/error.log
+	CustomLog \${APACHE_LOG_DIR}/access.log combined
 
 </VirtualHost>
 EOL
