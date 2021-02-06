@@ -1,0 +1,103 @@
+#!/usr/bin/env php
+<?php
+
+// Script to create a new blogpost, with a cover image created at the right size
+// and attribution ready set.
+
+$siteDir = '/home/dan/web/bs-site';
+
+$key = getenv('UNSPLASH_ACCESS_KEY');
+if (!$key) {
+    error("Unsplash access key needs to be set on [UNSPLASH_ACCESS_KEY] environment variable to run this script");
+}
+
+$unsplashId = read("Enter the unsplash image ID:");
+$imageDesc = read("Enter a short one/two word description of the image:");
+$version = read("Enter the BookStack version (eg. v0.31.1):");
+
+// Fetch and write out image
+$image = unsplashGet($unsplashId, $key);
+$imageContent = getImageContent($image, 2100, 800, 60);
+$imageOutName = str_replace(' ', '-', strtolower($imageDesc)) . "-" . $image->user->username . '.jpg';
+$imageOutPath = implode(DIRECTORY_SEPARATOR, [$siteDir, "static/images/blog-cover-images", $imageOutName]);
+file_put_contents($imageOutPath, $imageContent);
+
+// Write out blogpost
+$hyphenVersion = str_replace('.', '-', trim($version));
+$postMdName = "beta-release-{$hyphenVersion}.md";
+$postMdOutPath = implode(DIRECTORY_SEPARATOR, [$siteDir, "content/blog", $postMdName]);
+$postMdContent = getPostMarkdown();
+file_put_contents($postMdOutPath, $postMdContent);
+
+output("Done, Post created at {$postMdOutPath}");
+
+function unsplashGet(string $id, string $unsplashKey) {
+    $json = file_get_contents("https://api.unsplash.com/photos/{$id}?client_id={$unsplashKey}");
+    return json_decode($json);
+}
+
+function getImageContent($unsplashImage, int $width, int $height, int $quality) {
+    $url = $unsplashImage->urls->raw;
+    $url .= "&fm=jpg&w={$width}&h={$height}&fit=crop&q={$quality}&crop=focalpoint,center";
+    return file_get_contents($url);
+}
+
+function getPostMarkdown() {
+    global $image, $imageContent, $version, $hyphenVersion, $imageOutName;
+    $date = str_replace('+00:00', 'Z', date('c'));
+    $content = <<<POSTCONTENT
++++
+categories = ["Releases"]
+tags = ["Releases"]
+title = "Beta Release $version"
+date = $date
+author = "Dan Brown"
+image = "/images/blog-cover-images/$imageOutName"
+slug = "beta-release-$hyphenVersion"
+draft = false
++++
+
+Intro
+
+* [Update instructions](https://www.bookstackapp.com/docs/admin/updates)
+* [GitHub release page](https://github.com/BookStackApp/BookStack/releases/tag/$version)
+
+
+Important Notes
+
+
+### New Feature A
+
+
+### Translations
+
+
+### Full List of Changes
+
+
+### Next Steps
+
+----
+
+<span style="font-size: 0.8em;opacity:0.9;">Header Image Credits: <span>Photo by <a href="https://unsplash.com/@{$image->user->username}?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText">{$image->user->name}</a> on <a href="https://unsplash.com/?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText">Unsplash</a></span></span>
+POSTCONTENT;
+    return $content;
+}
+
+function error($text) {
+	echo $text . "\n";
+	exit(1);
+}
+
+function output($text) {
+    echo $text . "\n";
+}
+
+function read($question): string {
+    $response = readline($question);
+    if (!$response) {
+        error("Failed to respond to question (" . $question . ")");
+    }
+
+    return $response;
+}
