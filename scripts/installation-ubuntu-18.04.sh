@@ -18,9 +18,9 @@ CURRENT_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -
 # Install core system packages
 export DEBIAN_FRONTEND=noninteractive
 add-apt-repository universe
-apt update
-apt install -y git apache2 php7.2 curl php7.2-fpm php7.2-curl php7.2-mbstring php7.2-ldap \
-php7.2-tidy php7.2-xml php7.2-zip php7.2-gd php7.2-mysql mysql-server-5.7 libapache2-mod-php7.2
+add-apt-repository -yu ppa:ondrej/php
+apt install -y git apache2 php7.4 curl php7.4-fpm php7.4-curl php7.4-mbstring php7.4-ldap \
+php7.4-xml php7.4-zip php7.4-gd php7.4-mysql mysql-server-5.7 libapache2-mod-php7.4
 
 # Set up database
 DB_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13)"
@@ -71,7 +71,7 @@ chown www-data:www-data -R bootstrap/cache public/uploads storage && chmod -R 75
 
 # Set up apache
 a2enmod rewrite
-a2enmod php7.2
+a2enmod php7.4
 
 cat >/etc/apache2/sites-available/bookstack.conf <<EOL
 <VirtualHost *:80>
