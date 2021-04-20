@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Enter the full version (v0.25.5) and press [ENTER]:"
+echo "Enter the full version (eg. v21.03 or v21.12.3) and press [ENTER]:"
 read version
 
 echo ""
@@ -23,6 +23,6 @@ echo ""
 
 
 # Tag release and push it to GitHub
-echo "git tag -a ${version} -m \"Beta Release ${version}\" -s"
+echo "git tag -a ${version} -m \"Release ${version}\" -s"
 echo "git push origin release"
 echo "git push origin ${version}"

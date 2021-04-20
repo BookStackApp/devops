@@ -55,13 +55,13 @@ $splitVersion = explode('.', $version);
 $isFeature = intval(array_pop($splitVersion)) === 0;
 
 // Output title
-output("# BookStack Beta {$version}\n");
+output("# BookStack {$version}\n");
 
 // Output header text and links
 if ($isFeature) {
     $urlVersion = implode('0', $splitVersion);
     output("- [Update instructions](https://www.bookstackapp.com/docs/admin/updates)");
-    output("- [Update details on blog](https://www.bookstackapp.com/blog/beta-release-{$urlVersion}/)");
+    output("- [Update details on blog](https://www.bookstackapp.com/blog/bookstack-release-{$urlVersion}/)");
     output("\n### Full List of Changes\n");
 } else {
     output("\nThis release contains the following fixes and changes:\n");

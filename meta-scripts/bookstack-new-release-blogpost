@@ -13,7 +13,7 @@ if (!$key) {
 
 $unsplashId = read("Enter the unsplash image ID:");
 $imageDesc = read("Enter a short one/two word description of the image:");
-$version = read("Enter the BookStack version (eg. v0.31.1):");
+$version = read("Enter the BookStack version (eg. v21.03 or v21.12.3):");
 
 // Fetch and write out image
 $image = unsplashGet($unsplashId, $key);
@@ -24,7 +24,7 @@ file_put_contents($imageOutPath, $imageContent);
 
 // Write out blogpost
 $hyphenVersion = str_replace('.', '-', trim($version));
-$postMdName = "beta-release-{$hyphenVersion}.md";
+$postMdName = "bookstack-release-{$hyphenVersion}.md";
 $postMdOutPath = implode(DIRECTORY_SEPARATOR, [$siteDir, "content/blog", $postMdName]);
 $postMdContent = getPostMarkdown();
 file_put_contents($postMdOutPath, $postMdContent);
@@ -53,7 +53,7 @@ title = "Beta Release $version"
 date = $date
 author = "Dan Brown"
 image = "/images/blog-cover-images/$imageOutName"
-slug = "beta-release-$hyphenVersion"
+slug = "bookstack-release-$hyphenVersion"
 draft = false
 +++
 
