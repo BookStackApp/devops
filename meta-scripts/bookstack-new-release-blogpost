@@ -49,7 +49,7 @@ function getPostMarkdown() {
 +++
 categories = ["Releases"]
 tags = ["Releases"]
-title = "Beta Release $version"
+title = "BookStack Release $version"
 date = $date
 author = "Dan Brown"
 image = "/images/blog-cover-images/$imageOutName"
