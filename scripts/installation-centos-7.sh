@@ -16,7 +16,6 @@ fi
 CURRENT_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
 
 # Install core system packages and remi php repository
-yum check-update
 yum install -y git httpd curl wget yum-utils mariadb-server
 wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 wget http://rpms.remirepo.net/enterprise/remi-release-7.rpm
