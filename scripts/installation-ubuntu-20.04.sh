@@ -54,6 +54,9 @@ then
     exit 1
 fi
 
+php composer-setup.php --quiet
+rm composer-setup.php
+
 # Move composer to global installation
 mv composer.phar /usr/local/bin/composer
 
