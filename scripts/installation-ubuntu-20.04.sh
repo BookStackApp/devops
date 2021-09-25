@@ -5,11 +5,11 @@
 # Fetch domain to use from first provided parameter,
 # Otherwise request the user to input their domain
 DOMAIN=$1
-if [ -z $1 ]
+if [ -z "$1" ]
 then
 echo ""
 printf "Enter the domain you want to host BookStack and press [ENTER]\nExamples: my-site.com or docs.my-site.com\n"
-read DOMAIN
+read -r DOMAIN
 fi
 
 # Get the current machine IP address
@@ -29,30 +29,29 @@ mysql -u root --execute="CREATE USER 'bookstack'@'localhost' IDENTIFIED WITH mys
 mysql -u root --execute="GRANT ALL ON bookstack.* TO 'bookstack'@'localhost';FLUSH PRIVILEGES;"
 
 # Download BookStack
-cd /var/www
+cd /var/www || exit
 git clone https://github.com/BookStackApp/BookStack.git --branch release --single-branch bookstack
 BOOKSTACK_DIR="/var/www/bookstack"
-cd $BOOKSTACK_DIR
+cd $BOOKSTACK_DIR || exit
 
 # Install composer
-EXPECTED_SIGNATURE=$(wget https://composer.github.io/installer.sig -O - -q)
-curl -s https://getcomposer.org/installer > composer-setup.php
-ACTUAL_SIGNATURE=$(php -r "echo hash_file('SHA384', 'composer-setup.php');")
+EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
 
-if [ "$EXPECTED_SIGNATURE" = "$ACTUAL_SIGNATURE" ]
+if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]
 then
-    php composer-setup.php --quiet
-    RESULT=$?
-    rm composer-setup.php
-else
-    >&2 echo 'ERROR: Invalid composer installer signature'
+    >&2 echo 'ERROR: Invalid composer installer checksum'
     rm composer-setup.php
     exit 1
 fi
 
+# Move composer to global installation
+mv composer.phar /usr/local/bin/composer
+
 # Install BookStack composer dependencies
 export COMPOSER_ALLOW_SUPERUSER=1
-php composer.phar install --no-dev --no-plugins
+php /usr/local/bin/composer install --no-dev --no-plugins
 
 # Copy and update BookStack environment variables
 cp .env.example .env
