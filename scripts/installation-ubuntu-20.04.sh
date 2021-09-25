@@ -12,6 +12,14 @@ printf "Enter the domain you want to host BookStack and press [ENTER]\nExamples:
 read -r DOMAIN
 fi
 
+# Ensure a domain was provided otherwise display
+# an error message and stop the script
+if [ -z "$DOMAIN" ]
+then
+  >&2 echo 'ERROR: A domain must be provided to run this script'
+  exit 1
+fi
+
 # Get the current machine IP address
 CURRENT_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
 
