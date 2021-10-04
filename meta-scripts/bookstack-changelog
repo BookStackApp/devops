@@ -52,20 +52,21 @@ $versionMatch = [];
 preg_match('/v[0-9.]{5,7}/', $milestone['title'], $versionMatch);
 $version = $versionMatch[0];
 $splitVersion = explode('.', $version);
-$isFeature = intval(array_pop($splitVersion)) === 0;
+$isFeature = count($splitVersion) === 2;
 
 // Output title
 output("# BookStack {$version}\n");
 
 // Output header text and links
+output("### Links\n");
+output("- [Update instructions](https://www.bookstackapp.com/docs/admin/updates)");
 if ($isFeature) {
-    $urlVersion = implode('0', $splitVersion);
-    output("- [Update instructions](https://www.bookstackapp.com/docs/admin/updates)");
+    $urlVersion = implode('-', $splitVersion);
     output("- [Update details on blog](https://www.bookstackapp.com/blog/bookstack-release-{$urlVersion}/)");
-    output("\n### Full List of Changes\n");
-} else {
-    output("\nThis release contains the following fixes and changes:\n");
 }
+
+output("\n### Full List of Changes\n");
+output("This release contains the following fixes and changes:\n");
 
 // Output issues
 foreach ($issues as $issue) {
