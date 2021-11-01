@@ -2,27 +2,41 @@
 
 echo "Enter the full version (eg. v21.03 or v21.12.3) and press [ENTER]:"
 read version
+hyphen_version="${version//./-}"
+blogpost_url="https://www.bookstackapp.com/blog/bookstack-release-${hyphen_version}/"
 
 echo ""
-echo ""
 
-# Translator Attribution Update
+echo -e "\e[1m\e[94m== Translator Attribution Update ==\e[0m"
 echo "bookstack-update-translators"
 echo "git commit -a -m \"Updated translator attribution before release ${version}\""
+echo ""
 
-# Merge codebase from master
+echo -e "\e[1m\e[94m== Merge codebase from master ==\e[0m"
 echo "git checkout release"
 echo "git merge master"
 echo ""
 
-# Builds deps and increment version
+echo -e "\e[1m\e[94m== Builds deps and increment version ==\e[0m"
 echo "npm run production"
 echo "echo \"${version}\" > version"
 echo "git commit -a -m \"Updated version and assets for release ${version}\""
 echo ""
 
-
-# Tag release and push it to GitHub
+echo -e "\e[1m\e[94m== Tag release and push it to GitHub ==\e[0m"
 echo "git tag -a ${version} -m \"Release ${version}\" -s"
 echo "git push origin release"
 echo "git push origin ${version}"
+echo ""
+
+
+echo -e "\e[1m\e[94m== Post Deployment Checklist ==\e[0m"
+echo "✔ Create GitHub release - https://github.com/BookStackApp/BookStack/releases/new?tag=${version}&title=BookStack+${version}"
+echo "✔ Deploy site blogpost/changes"
+echo "✔ Post on Twitter - https://twitter.com/share?url=${blogpost_url}"
+echo "✔ Post on Subreddit - http://www.reddit.com/r/BookStack/submit?url=${blogpost_url}"
+echo "✔ Update demo instance"
+echo ""
+echo -e "\e[1m\e[93m🔒 Security release?\e[0m"
+echo "✔ Send out security email - https://updates.bookstackapp.com/"
+echo "✔ Add notice to updates page"
