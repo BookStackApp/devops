@@ -1,0 +1,53 @@
+# This example nginx config file shows a method of hosting BookStack on a 
+# URL sub path (http://example.com/bookstack). There are many ways to achieve
+# this but the below method uses a reverse proxy style method to keep the BookStack
+# configuration contained within it's own server block.
+
+# There are two server blocks in this file.
+# The first is pointed at BookStack so has the PHP config, but
+# this is only intended to be used locally (hence on port 8080 and using "localhost").
+# The "root" directory is pointed to the "public" folder within your BookStack 
+# install folder.
+
+# The second would represent your existing website (http://example.com in this case).
+# The "location /bookstack/" block will take web requests to `/bookstack/` and proxy 
+# them to the first internal-only server block. 
+
+# Note: The "root" of the first server block should not be a child directory of the 
+#       second server block. This would likely cause an insecure setup.
+
+server {
+  listen 8080;
+  listen [::]:8080;
+
+  server_name localhost;
+
+  root /var/www/bookstack/public;
+  index index.php index.html;
+
+  location / {
+    try_files $uri $uri/ /index.php?$query_string;
+  }
+  
+  location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+  }
+}
+
+
+server {
+  listen 80;
+  listen [::]:80;
+
+  server_name example.com;
+
+  root /var/www/html;
+  index index.html;
+
+  location /bookstack/ {
+    proxy_pass http://localhost:8080/;
+    proxy_redirect off;
+  }
+  
+}

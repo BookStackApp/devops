@@ -62,7 +62,7 @@ php artisan migrate --no-interaction --force
 chown www-data:www-data -R bootstrap/cache public/uploads storage && chmod -R 755 bootstrap/cache public/uploads storage
 
 # Add nginx configuration
-curl -s https://raw.githubusercontent.com/BookStackApp/devops/master/config/nginx > /etc/nginx/sites-available/bookstack
+curl -s https://raw.githubusercontent.com/BookStackApp/devops/master/config/nginx/ubuntu-1604-install-config > /etc/nginx/sites-available/bookstack
 sed -i.bak "s/bookstack.dev/$DOMAIN/" /etc/nginx/sites-available/bookstack
 ln -s /etc/nginx/sites-available/bookstack /etc/nginx/sites-enabled/bookstack
 
