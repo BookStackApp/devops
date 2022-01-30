@@ -12,9 +12,9 @@ echo "bookstack-update-translators"
 echo "git commit -a -m \"Updated translator attribution before release ${version}\""
 echo ""
 
-echo -e "\e[1m\e[94m== Merge codebase from master ==\e[0m"
+echo -e "\e[1m\e[94m== Merge codebase from development ==\e[0m"
 echo "git checkout release"
-echo "git merge master"
+echo "git merge development"
 echo ""
 
 echo -e "\e[1m\e[94m== Builds deps and increment version ==\e[0m"
