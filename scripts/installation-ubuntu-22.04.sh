@@ -1,15 +1,31 @@
-#!/bin/sh
-# This script will install a new BookStack instance on a fresh Ubuntu 20.04 server.
-# This script is experimental and does not ensure any security.
+#!/bin/bash
+
+echo "This script installs a new BookStack instance on a fresh Ubuntu 22.04 server."
+echo "This script does not ensure system security."
+echo ""
+
+# Check we're running as root and exit if not
+if [[ $EUID -gt 0 ]]
+then
+  >&2 echo "ERROR: This script must be ran with root/sudo privileges"
+  exit 1
+fi
+
+# Get the current user running the script
+SCRIPT_USER="${SUDO_USER:-$USER}"
+
+# Get the current machine IP address
+CURRENT_IP=$(ip addr | grep 'state UP' -A4 | grep 'inet ' | awk '{print $2}' | cut -f1  -d'/')
 
 # Fetch domain to use from first provided parameter,
 # Otherwise request the user to input their domain
 DOMAIN=$1
 if [ -z "$1" ]
 then
-echo ""
-printf "Enter the domain you want to host BookStack and press [ENTER]\nExamples: my-site.com or docs.my-site.com\n"
-read -r DOMAIN
+  echo ""
+  echo "Enter the domain (or IP if not using a domain) you want to host BookStack on and press [ENTER]."
+  echo "Examples: my-site.com or docs.my-site.com or ${CURRENT_IP}"
+  read -r DOMAIN
 fi
 
 # Ensure a domain was provided otherwise display
@@ -20,15 +36,11 @@ then
   exit 1
 fi
 
-# Get the current machine IP address
-CURRENT_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
-
 # Install core system packages
 export DEBIAN_FRONTEND=noninteractive
-add-apt-repository universe
 apt update
-apt install -y git unzip apache2 php7.4 curl php7.4-fpm php7.4-curl php7.4-mbstring php7.4-ldap \
-php7.4-tidy php7.4-xml php7.4-zip php7.4-gd php7.4-mysql mysql-server-8.0 libapache2-mod-php7.4
+apt install -y git unzip apache2 php8.1 curl php8.1-curl php8.1-mbstring php8.1-ldap \
+php8.1-xml php8.1-zip php8.1-gd php8.1-mysql mysql-server-8.0 libapache2-mod-php8.1
 
 # Set up database
 DB_PASS="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13)"
@@ -40,6 +52,8 @@ mysql -u root --execute="GRANT ALL ON bookstack.* TO 'bookstack'@'localhost';FLU
 cd /var/www || exit
 git clone https://github.com/BookStackApp/BookStack.git --branch release --single-branch bookstack
 BOOKSTACK_DIR="/var/www/bookstack"
+
+# Move into the BookStack install directory
 cd $BOOKSTACK_DIR || exit
 
 # Install composer
@@ -77,12 +91,22 @@ php artisan key:generate --no-interaction --force
 php artisan migrate --no-interaction --force
 
 # Set file and folder permissions
-chown www-data:www-data -R bootstrap/cache public/uploads storage && chmod -R 755 bootstrap/cache public/uploads storage
+# Sets current user as owner user and www-data as owner group then
+# provides group write access only to required directories.
+# Hides the `.env` file so it's not visible to other users on the system.
+chown -R "$SCRIPT_USER":www-data ./
+chmod -R 755 ./
+chmod -R 775 bootstrap/cache public/uploads storage
+chmod 740 .env
 
-# Set up apache
+# Tell git to ignore permission changes
+git config core.fileMode false
+
+# Enable required apache modules
 a2enmod rewrite
-a2enmod php7.4
+a2enmod php8.1
 
+# Set-up the required BookStack apache config
 cat >/etc/apache2/sites-available/bookstack.conf <<EOL
 <VirtualHost *:80>
 	ServerName ${DOMAIN}
@@ -90,32 +114,32 @@ cat >/etc/apache2/sites-available/bookstack.conf <<EOL
 	ServerAdmin webmaster@localhost
 	DocumentRoot /var/www/bookstack/public/
 
-    <Directory /var/www/bookstack/public/>
-        Options Indexes FollowSymLinks
-        AllowOverride None
-        Require all granted
-        <IfModule mod_rewrite.c>
-            <IfModule mod_negotiation.c>
-                Options -MultiViews -Indexes
-            </IfModule>
+  <Directory /var/www/bookstack/public/>
+      Options -Indexes +FollowSymLinks
+      AllowOverride None
+      Require all granted
+      <IfModule mod_rewrite.c>
+          <IfModule mod_negotiation.c>
+              Options -MultiViews -Indexes
+          </IfModule>
 
-            RewriteEngine On
+          RewriteEngine On
 
-            # Handle Authorization Header
-            RewriteCond %{HTTP:Authorization} .
-            RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+          # Handle Authorization Header
+          RewriteCond %{HTTP:Authorization} .
+          RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-            # Redirect Trailing Slashes If Not A Folder...
-            RewriteCond %{REQUEST_FILENAME} !-d
-            RewriteCond %{REQUEST_URI} (.+)/$
-            RewriteRule ^ %1 [L,R=301]
+          # Redirect Trailing Slashes If Not A Folder...
+          RewriteCond %{REQUEST_FILENAME} !-d
+          RewriteCond %{REQUEST_URI} (.+)/$
+          RewriteRule ^ %1 [L,R=301]
 
-            # Handle Front Controller...
-            RewriteCond %{REQUEST_FILENAME} !-d
-            RewriteCond %{REQUEST_FILENAME} !-f
-            RewriteRule ^ index.php [L]
-        </IfModule>
-    </Directory>
+          # Handle Front Controller...
+          RewriteCond %{REQUEST_FILENAME} !-d
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteRule ^ index.php [L]
+      </IfModule>
+  </Directory>
 
 	ErrorLog \${APACHE_LOG_DIR}/error.log
 	CustomLog \${APACHE_LOG_DIR}/access.log combined
@@ -123,6 +147,7 @@ cat >/etc/apache2/sites-available/bookstack.conf <<EOL
 </VirtualHost>
 EOL
 
+# Disable the default apache site and enable BookStack
 a2dissite 000-default.conf
 a2ensite bookstack.conf
 
