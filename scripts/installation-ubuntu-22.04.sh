@@ -5,7 +5,7 @@ echo "This script does not ensure system security."
 echo ""
 
 # Generate a path for a log file to output into for debugging
-LOGPATH=$(realpath "bookstack_install_log_$(date +%s).log")
+LOGPATH=$(realpath "bookstack_install_$(date +%s).log")
 
 # Get the current user running the script
 SCRIPT_USER="${SUDO_USER:-$USER}"
@@ -218,7 +218,7 @@ sleep 1
 run_pre_install_checks
 run_prompt_for_domain_if_required
 info_msg ""
-info_msg "Installing using the domain/IP \"$DOMAIN\""
+info_msg "Installing using the domain or IP \"$DOMAIN\""
 info_msg ""
 sleep 1
 
@@ -251,9 +251,9 @@ run_configure_apache >> "$LOGPATH" 2>&1
 
 info_msg "----------------------------------------------------------------"
 info_msg "Setup finished, your BookStack instance should now be installed!"
-info_msg "Default login email: admin@admin.com"
-info_msg "Default login password: password"
-info_msg "Access URL: http://$CURRENT_IP/ or http://$DOMAIN/"
-info_msg "BookStack Install Directory: $BOOKSTACK_DIR"
-info_msg "Install Script Log: $LOGPATH"
+info_msg "- Default login email: admin@admin.com"
+info_msg "- Default login password: password"
+info_msg "- Access URL: http://$CURRENT_IP/ or http://$DOMAIN/"
+info_msg "- BookStack install path: $BOOKSTACK_DIR"
+info_msg "- Install script log: $LOGPATH"
 info_msg "---------------------------------------------------------------"
