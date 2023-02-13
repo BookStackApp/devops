@@ -2,6 +2,10 @@
 # This script will install a new BookStack instance on a fresh Ubuntu 16.04 server.
 # This script is experimental and does not ensure any security.
 
+echo "THIS SCRIPT IS NO LONGER SUPPORTED OR MAINTAINED"
+echo "IT MAY NOT WORK WITH CURRENT VERSIONS OF BOOKSTACK"
+echo ""
+
 echo ""
 echo -n "Enter the domain you want to host BookStack and press [ENTER]: "
 read DOMAIN
