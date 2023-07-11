@@ -3,9 +3,9 @@
 
 // Script to fetch translators from crowdin via the API
 // and format into a BookStack attribution file.
-$key = getenv('CROWDIN_PROJECT_KEY');
+$key = getenv('CROWDIN_ACCESS_TOKEN');
 if (!$key) {
-    echo "Crowdin project key needs to be set on [CROWDIN_PROJECT_KEY] environment variable to run this script";
+    echo "A Crowdin access token with relevant report permissions needs to be set on [CROWDIN_ACCESS_TOKEN] environment variable to run this script";
     exit(0);
 }
 
@@ -19,11 +19,15 @@ if (!file_exists($reportLocation)) {
 
 $reportDelimiter = ' :: ';
 
+echo "Loading existing data...\n";
 $reportMap = loadExistingReportIntoMap($reportDelimiter, $reportLocation);
+echo "Exporting members from Crowdin...\n";
 $csvReport = exportTopMembersReport($key);
 $csvData = csv_to_array($csvReport);
+echo "Merging, formatting and writing report...\n";
 mergeCsvDataIntoReportMap($reportMap, $csvData, $reportDelimiter);
 formatAndWriteOutput($reportLocation, $reportMap, $reportDelimiter);
+echo "Done!\n";
 
 function formatAndWriteOutput(string $reportLocation, array $reportMap, string $reportDelimiter) {
     $output = "Name :: Languages\n";
@@ -68,20 +72,24 @@ function loadExistingReportIntoMap($reportDelimiter, $reportLocation) {
 function exportTopMembersReport($key) {
     $result = makeMemberExportReport($key);
 
-    $exportHash = $result->hash;
+    $exportHash = $result->data->identifier;
+    echo "Waiting for Crowdin report to be generated...\n";
+    sleep(5);
+    echo "Downloading Crowdin report...\n";
     $csv = downloadMemberReport($exportHash, $key);
 
     return $csv;
 }
 
 function makeMemberExportReport(string $key) {
-    $url = 'https://api.crowdin.com/api/project/bookstack/reports/top-members/export';
+    $url = 'https://api.crowdin.com/api/v2/projects/377219/reports';
     $postData = [
-        'date_from' => '2019-10-01',
-        'date_to' => date('Y-m-d'),
-        'format' => 'csv',
-        'json' => true,
-        'key' => $key,
+        'name' => 'top-members',
+        'schema' => [
+            'dateFrom' => '2019-10-01T00:00:00Z',
+            'dateTo' => date('Y-m-d') . 'T23:59:59Z',
+            'format' => 'csv',
+        ],
     ];
 
     $ch = curl_init();
@@ -89,7 +97,11 @@ function makeMemberExportReport(string $key) {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 15);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $key,
+    ]);
 
     $result = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -110,17 +122,26 @@ function downloadMemberReport(string $exportHash, string $key) {
         'hash' => $exportHash,
         'key' => $key
     ];
-    $url = 'https://api.crowdin.com/api/project/bookstack/reports/top-members/download';
-    $url .= '?' . http_build_query($params);
+    $url = "https://api.crowdin.com/api/v2/projects/377219/reports/{$exportHash}/download";
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_TIMEOUT, 15);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $key,
+    ]);
 
     $result = curl_exec($ch);
     curl_close($ch);
+    $data = json_decode($result);
 
-    return $result;
+    $downloadUrl = $data->data->url ?? null;
+    if (!$downloadUrl) {
+        throw new Exception("Could not get report download URL. Download response data:\n" . $result);
+    }
+
+    return file_get_contents($downloadUrl);
 }
 
 /**
