@@ -62,19 +62,24 @@ function run_pre_install_checks() {
 # Fetch domain to use from first provided parameter,
 # Otherwise request the user to input their domain
 function run_prompt_for_domain_if_required() {
-  if [ -z "$DOMAIN" ]
+if [ -z "$DOMAIN" ]
   then
-    info_msg ""
-    info_msg "Enter the domain (or IP if not using a domain) you want to host BookStack on and press [ENTER]."
-    info_msg "Examples: my-site.com or docs.my-site.com or ${CURRENT_IP}"
-    read -r DOMAIN
+    CURRENT_IP=$(hostname -I | cut -d' ' -f1)
+    DOMAIN=$CURRENT_IP
   fi
+  # if [ -z "$DOMAIN" ]
+  # then
+  #   info_msg ""
+  #   info_msg "Enter the domain (or IP if not using a domain) you want to host BookStack on and press [ENTER]."
+  #   info_msg "Examples: my-site.com or docs.my-site.com or ${CURRENT_IP}"
+  #   read -r DOMAIN
+  # fi
 
-  # Error out if no domain was provided
-  if [ -z "$DOMAIN" ]
-  then
-    error_out "A domain must be provided to run this script"
-  fi
+  # # Error out if no domain was provided
+  # if [ -z "$DOMAIN" ]
+  # then
+  #   error_out "A domain must be provided to run this script"
+  # fi
 }
 
 # Install core system packages
