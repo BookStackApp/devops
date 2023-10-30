@@ -42,6 +42,9 @@ function formatAndWriteOutput(string $reportLocation, array $reportMap, string $
 
 function mergeCsvDataIntoReportMap(array &$reportMap, array $csvData, string $reportDelimiter) {
     foreach ($csvData as $csvLine) {
+        if (intval($csvLine['Target Words']) == 0) {
+            continue;
+        }
         $name = $csvLine['Name'];
         $name = str_replace($reportDelimiter, '', $name);
         $languages = explode('; ', $csvLine['Languages']);
