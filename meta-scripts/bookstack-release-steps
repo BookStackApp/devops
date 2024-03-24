@@ -1,15 +1,16 @@
 #!/bin/bash
 
-echo "Enter the full version (eg. v21.03 or v21.12.3) and press [ENTER]:"
+echo "Enter the full version (eg. v24.03 or v24.12.3) and press [ENTER]:"
 read version
 hyphen_version="${version//./-}"
 blogpost_url="https://www.bookstackapp.com/blog/bookstack-release-${hyphen_version}/"
 
 echo ""
 
-echo -e "\e[1m\e[94m== Translator Attribution Update ==\e[0m"
+echo -e "\e[1m\e[94m== Translator & Dependency Attribution Update ==\e[0m"
 echo "bookstack-update-translators"
-echo "git commit -a -m \"Updated translator attribution before release ${version}\""
+echo "composer run build-licenses"
+echo "git commit -a -m \"Updated translator & dependency attribution before release ${version}\""
 echo ""
 
 echo -e "\e[1m\e[94m== Merge codebase from development ==\e[0m"
@@ -34,6 +35,7 @@ echo -e "\e[1m\e[94m== Post Deployment Checklist ==\e[0m"
 echo "✔ Create GitHub release - https://github.com/BookStackApp/BookStack/releases/new?tag=${version}&title=BookStack+${version}"
 echo "✔ Deploy site blogpost/changes"
 echo "✔ Post on Twitter - https://twitter.com/share?url=${blogpost_url}"
+echo "✔ Post on Mastodon - https://fosstodon.org/share?url=${blogpost_url}"
 echo "✔ Post on Subreddit - http://www.reddit.com/r/BookStack/submit?url=${blogpost_url}"
 echo "✔ Update demo instance"
 echo ""
