@@ -80,12 +80,17 @@ function run_prompt_for_domain_if_required() {
 # Install core system packages
 function run_package_installs() {
   apt update
-  apt install -y git unzip apache2 php8.3 curl php8.3-curl php8.3-mbstring php8.3-ldap \
-  php8.3-xml php8.3-zip php8.3-gd php8.3-mysql mysql-server-8.0 libapache2-mod-php8.3
+  apt install -y git unzip apache2 curl mysql-server-8.0 php8.3 \
+  php8.3-fpm php8.3-curl php8.3-mbstring php8.3-ldap php8.3-xml php8.3-zip php8.3-gd php8.3-mysql
 }
 
 # Set up database
 function run_database_setup() {
+  # Ensure database service has started
+  systemctl start mysql-server.service
+  sleep 3
+
+  # Create the required user database, user and permissions in the database
   mysql -u root --execute="CREATE DATABASE bookstack;"
   mysql -u root --execute="CREATE USER 'bookstack'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_PASS';"
   mysql -u root --execute="GRANT ALL ON bookstack.* TO 'bookstack'@'localhost';FLUSH PRIVILEGES;"
@@ -159,9 +164,9 @@ function run_set_application_file_permissions() {
 
 # Setup apache with the needed modules and config
 function run_configure_apache() {
-  # Enable required apache modules
-  a2enmod rewrite
-  a2enmod php8.3
+  # Enable required apache modules and config
+  a2enmod rewrite proxy_fcgi setenvif
+  a2enconf php8.3-fpm
 
   # Set-up the required BookStack apache config
   cat >/etc/apache2/sites-available/bookstack.conf <<EOL
@@ -210,6 +215,8 @@ EOL
 
   # Restart apache to load new config
   systemctl restart apache2
+  # Ensure php-fpm service has started
+  systemctl start php8.3-fpm.service
 }
 
 info_msg "This script logs full output to $LOGPATH which may help upon issues."
